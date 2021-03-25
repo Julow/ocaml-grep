@@ -1,0 +1,4 @@
+(executable
+ (name ogrep)
+ (public_name ogrep)
+ (libraries cmdliner ppxlib ppxlib.ast))
