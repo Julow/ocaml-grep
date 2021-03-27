@@ -1,0 +1,23 @@
+  $ ogrep foo
+  ./test.ml:1:5
+  ./test.ml:1:20
+  ./test.ml:1:26
+  ./test.ml:3:37
+  ./test.ml:3:41
+  _none_:1:-1
+  ./test.ml:3:50
+  ./test.ml:3:59
+  ./test.ml:4:74
+  ./test.ml:4:78
+  ./test.ml:4:84
+  ./test.ml:4:84
+  ./test.ml:4:92
+  ./test.ml:4:98
+  ./test.ml:4:109
+  ./test.ml:4:115
+  ./test.ml:4:122
+  _none_:1:-1
+  ./test.ml:4:132
+  _none_:1:-1
+  ./test.ml:4:141
+  ./test.ml:3:66
