@@ -1,12 +1,16 @@
-class grepper match_ =
+type 'a acc = Ppxlib.Ast.location * 'a list
+
+let init = (Ppxlib.Location.none, [])
+
+class ['a] grepper match_ =
   object
-    inherit [_] Ppxlib.Ast_traverse.map_with_context as super
+    inherit ['a acc] Ppxlib.Ast_traverse.fold as super
 
-    method! loc f _ t = super#loc f t.Ppxlib_ast.Ast.loc t
+    method! loc f t (prev_loc, acc) =
+      let _, acc' = super#loc f t (t.Ppxlib_ast.Ast.loc, acc) in
+      (prev_loc, acc')
 
-    method! string loc s =
-      match_ loc s;
-      s
+    method! string s (loc, acc) = (loc, match_ loc s acc)
   end
 
 let parse_source_file path f =
@@ -18,11 +22,13 @@ let parse_source_file path f =
       f lexbuf)
 
 let impl grepper path =
-  ignore
-    (grepper#structure Ppxlib.Location.none
-       (parse_source_file path Ppxlib.Parse.implementation))
+  List.rev
+    (snd
+       (grepper#structure
+          (parse_source_file path Ppxlib.Parse.implementation)
+          init))
 
 let intf grepper path =
-  ignore
-    (grepper#signature Ppxlib.Location.none
-       (parse_source_file path Ppxlib.Parse.interface))
+  List.rev
+    (snd
+       (grepper#signature (parse_source_file path Ppxlib.Parse.interface) init))

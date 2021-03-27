@@ -6,20 +6,25 @@ and scan_dir f parent =
   Array.sort String.compare files;
   Array.iter (fun child -> scan_file f (Filename.concat parent child)) files
 
-let match_ pattern loc s =
-  if String.equal pattern s then
-    let { Ppxlib.Ast.pos_fname; pos_lnum; pos_cnum; _ } =
-      loc.Ppxlib.Ast.loc_start
-    in
-    Printf.printf "%s:%d:%d\n" pos_fname pos_lnum pos_cnum
+let match_ pattern loc s acc =
+  if String.equal pattern s then loc :: acc else acc
+
+let show_matches matches =
+  List.iter
+    (fun loc ->
+      let { Ppxlib.Ast.pos_fname; pos_lnum; pos_cnum; _ } =
+        loc.Ppxlib.Ast.loc_start
+      in
+      Printf.printf "%s:%d:%d\n" pos_fname pos_lnum pos_cnum)
+    matches
 
 let run pattern inputs =
   let grepper = new Grep_parsetree.grepper (match_ pattern) in
   List.iter
     (scan_file (fun path ->
          match Filename.extension path with
-         | ".ml" -> Grep_parsetree.impl grepper path
-         | ".mli" -> Grep_parsetree.intf grepper path
+         | ".ml" -> show_matches (Grep_parsetree.impl grepper path)
+         | ".mli" -> show_matches (Grep_parsetree.intf grepper path)
          | _ -> ()))
     inputs
 
