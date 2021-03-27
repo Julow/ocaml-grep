@@ -13,22 +13,8 @@ class ['a] grepper match_ =
     method! string s (loc, acc) = (loc, match_ loc s acc)
   end
 
-let parse_source_file path f =
-  let ic = open_in path in
-  let finally () = close_in ic in
-  Fun.protect ~finally (fun () ->
-      let lexbuf = Lexing.from_channel ic in
-      Lexing.set_filename lexbuf path;
-      f lexbuf)
+let impl grepper lexbuf =
+  snd (grepper#structure (Ppxlib.Parse.implementation lexbuf) init)
 
-let impl grepper path =
-  List.rev
-    (snd
-       (grepper#structure
-          (parse_source_file path Ppxlib.Parse.implementation)
-          init))
-
-let intf grepper path =
-  List.rev
-    (snd
-       (grepper#signature (parse_source_file path Ppxlib.Parse.interface) init))
+let intf grepper lexbuf =
+  snd (grepper#signature (Ppxlib.Parse.interface lexbuf) init)

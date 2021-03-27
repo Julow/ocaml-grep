@@ -6,25 +6,37 @@ and scan_dir f parent =
   Array.sort String.compare files;
   Array.iter (fun child -> scan_file f (Filename.concat parent child)) files
 
-let match_ pattern loc s acc =
-  if String.equal pattern s then loc :: acc else acc
+let match_ pattern (loc : Ppxlib.Ast.location) s acc =
+  if (not loc.loc_ghost) && String.equal pattern s then
+    let { Ppxlib.Ast.pos_lnum; pos_cnum; _ } = loc.loc_start in
+    (pos_lnum, pos_cnum) :: acc
+  else acc
 
-let show_matches matches =
-  List.iter
-    (fun loc ->
-      let { Ppxlib.Ast.pos_fname; pos_lnum; pos_cnum; _ } =
-        loc.Ppxlib.Ast.loc_start
-      in
-      Printf.printf "%s:%d:%d\n" pos_fname pos_lnum pos_cnum)
-    matches
+let show_matches file matches =
+  List.fold_left
+    (fun last_printed (lnum, _) ->
+      if last_printed < lnum then
+        Printf.printf "%s:%d:%s\n" (Text_file.path file) lnum
+          (Text_file.line file lnum);
+      lnum)
+    (-1) matches
+  |> ignore
+
+let run_on_file do_grep path =
+  let file = Text_file.read path in
+  do_grep (Text_file.lexbuf file)
+  |> List.sort_uniq (fun (a, a') (b, b') ->
+         let d = a - b in
+         if d = 0 then a' - b' else d)
+  |> show_matches file
 
 let run pattern inputs =
   let grepper = new Grep_parsetree.grepper (match_ pattern) in
   List.iter
     (scan_file (fun path ->
          match Filename.extension path with
-         | ".ml" -> show_matches (Grep_parsetree.impl grepper path)
-         | ".mli" -> show_matches (Grep_parsetree.intf grepper path)
+         | ".ml" -> run_on_file (Grep_parsetree.impl grepper) path
+         | ".mli" -> run_on_file (Grep_parsetree.intf grepper) path
          | _ -> ()))
     inputs
 
