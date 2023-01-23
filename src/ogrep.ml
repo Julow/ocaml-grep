@@ -6,8 +6,17 @@ and scan_dir f parent =
   Array.sort String.compare files;
   Array.iter (fun child -> scan_path f (Filename.concat parent child)) files
 
-let match_ matches pattern (loc : Ppxlib.Ast.location) context s =
-  if (not loc.loc_ghost) && String.equal pattern s then
+let rec match_context pat_context context =
+  match (pat_context, context) with
+  | [], _ -> true
+  | _ :: _, [] -> false
+  | a :: a', b :: b' -> a = b && match_context a' b'
+
+let match_ matches ~pat_context ~pattern (loc : Ppxlib.Ast.location) context s =
+  if
+    (not loc.loc_ghost) && String.equal pattern s
+    && match_context pat_context context
+  then
     let { Ppxlib.Ast.pos_lnum; pos_cnum; _ } = loc.loc_start in
     matches := (pos_lnum, pos_cnum, context) :: !matches
   else ()
@@ -27,23 +36,42 @@ let show_matches file matches =
        (-1)
   |> ignore
 
-let run_on_file run_grepper ~pattern path =
+let run_on_file run_grepper ~pat_context ~pattern path =
   let file = Text_file.read path in
   let matches = ref [] in
-  let grepper = new Grep_parsetree.grepper (match_ matches pattern) in
+  let grepper =
+    new Grep_parsetree.grepper (match_ matches ~pat_context ~pattern)
+  in
   run_grepper grepper (Text_file.lexbuf file);
   show_matches file !matches
 
-let run pattern inputs =
+let run pat_context pattern inputs =
   List.iter
     (scan_path (fun path ->
          match Filename.extension path with
-         | ".ml" -> run_on_file Grep_parsetree.impl ~pattern path
-         | ".mli" -> run_on_file Grep_parsetree.intf ~pattern path
+         | ".ml" -> run_on_file Grep_parsetree.impl ~pattern ~pat_context path
+         | ".mli" -> run_on_file Grep_parsetree.intf ~pattern ~pat_context path
          | _ -> ()))
     inputs
 
 open Cmdliner
+
+let pat_context =
+  let f ctx_str doc_str =
+    let doc =
+      "Evaluate the pattern only inside a " ^ doc_str ^ ". Can be nested."
+    in
+    Arg.info ~doc [ ctx_str ]
+  in
+  let flags =
+    Grep_parsetree.
+      [
+        (Type, f "type" "type expr");
+        (Expr, f "expr" "expression");
+        (Pattern, f "pattern" "pattern");
+      ]
+  in
+  Term.(const List.rev $ Arg.(value & vflag_all [] flags))
 
 let pos_pattern =
   let doc = "A regular expression accepted by OCaml's Str library." in
@@ -60,7 +88,7 @@ let cmd =
     "Grep OCaml source code. Matches a $(e,pattern) against every names \
      present in source code."
   in
-  let term = Term.(const run $ pos_pattern $ pos_inputs) in
+  let term = Term.(const run $ pat_context $ pos_pattern $ pos_inputs) in
   Cmd.(v (info "ogrep" ~doc) term)
 
 let () = exit (Cmd.eval cmd)

@@ -25,3 +25,13 @@
   ./test.ml:3:()type t = Foo
   ./test.ml:7:(type)type t = [ `Foo ]
   ./test.ml:23:(pattern)let (Foo _) = ()
+
+  $ ogrep --type Foo
+  ./test.ml:7:(type)type t = [ `Foo ]
+
+  $ ogrep --expr foo
+  ./test.ml:13:(expr)let _ = foo
+  ./test.ml:15:(expr
+  expr)let _ = f foo
+  ./test.ml:17:(expr
+  expr)let _ = foo ()

@@ -1,1 +1,2 @@
-(cram (deps %{bin:ogrep}))
+(cram
+ (deps %{bin:ogrep}))
