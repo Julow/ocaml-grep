@@ -1,42 +1,45 @@
-let rec scan_file f path =
+let rec scan_path f path =
   if Sys.is_directory path then scan_dir f path else f path
 
 and scan_dir f parent =
   let files = Sys.readdir parent in
   Array.sort String.compare files;
-  Array.iter (fun child -> scan_file f (Filename.concat parent child)) files
+  Array.iter (fun child -> scan_path f (Filename.concat parent child)) files
 
-let match_ pattern (loc : Ppxlib.Ast.location) s acc =
+let match_ matches pattern (loc : Ppxlib.Ast.location) context s =
   if (not loc.loc_ghost) && String.equal pattern s then
     let { Ppxlib.Ast.pos_lnum; pos_cnum; _ } = loc.loc_start in
-    (pos_lnum, pos_cnum) :: acc
-  else acc
+    matches := (pos_lnum, pos_cnum, context) :: !matches
+  else ()
 
 let show_matches file matches =
-  List.fold_left
-    (fun last_printed (lnum, _) ->
-      if last_printed < lnum then
-        Printf.printf "%s:%d:%s\n" (Text_file.path file) lnum
-          (Text_file.line file lnum);
-      lnum)
-    (-1) matches
-  |> ignore
-
-let run_on_file do_grep path =
-  let file = Text_file.read path in
-  do_grep (Text_file.lexbuf file)
-  |> List.sort_uniq (fun (a, a') (b, b') ->
+  matches
+  |> List.sort_uniq (fun (a, a', _) (b, b', _) ->
          let d = a - b in
          if d = 0 then a' - b' else d)
-  |> show_matches file
+  |> List.fold_left
+       (fun last_printed (lnum, _, context) ->
+         if last_printed < lnum then
+           Format.printf "%s:%d:(%a)%s\n" (Text_file.path file) lnum
+             (Format.pp_print_list Grep_parsetree.pp_context)
+             context (Text_file.line file lnum);
+         lnum)
+       (-1)
+  |> ignore
+
+let run_on_file run_grepper ~pattern path =
+  let file = Text_file.read path in
+  let matches = ref [] in
+  let grepper = new Grep_parsetree.grepper (match_ matches pattern) in
+  run_grepper grepper (Text_file.lexbuf file);
+  show_matches file !matches
 
 let run pattern inputs =
-  let grepper = new Grep_parsetree.grepper (match_ pattern) in
   List.iter
-    (scan_file (fun path ->
+    (scan_path (fun path ->
          match Filename.extension path with
-         | ".ml" -> run_on_file (Grep_parsetree.impl grepper) path
-         | ".mli" -> run_on_file (Grep_parsetree.intf grepper) path
+         | ".ml" -> run_on_file Grep_parsetree.impl ~pattern path
+         | ".mli" -> run_on_file Grep_parsetree.intf ~pattern path
          | _ -> ()))
     inputs
 
@@ -57,6 +60,7 @@ let cmd =
     "Grep OCaml source code. Matches a $(e,pattern) against every names \
      present in source code."
   in
-  Term.(const run $ pos_pattern $ pos_inputs, info "ogrep" ~doc)
+  let term = Term.(const run $ pos_pattern $ pos_inputs) in
+  Cmd.(v (info "ogrep" ~doc) term)
 
-let () = Term.exit @@ Term.eval cmd
+let () = exit (Cmd.eval cmd)
