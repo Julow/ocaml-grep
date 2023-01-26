@@ -1,3 +1,4 @@
+type match_ = Ppxlib.Ast.location -> Context.t list -> string -> unit
 type acc = Ppxlib.Ast.location * Context.t list
 
 let init = (Ppxlib.Location.none, [])
@@ -59,6 +60,10 @@ class grepper match_ =
     method! include_description = with_context super#include_description Include
     method! class_description = with_context super#class_description Class
   end
+
+type t = grepper
+
+let grepper match_ = new grepper match_
 
 let impl grepper lexbuf =
   ignore (grepper#structure (Ppxlib.Parse.implementation lexbuf) init)

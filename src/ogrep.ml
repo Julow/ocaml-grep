@@ -6,16 +6,10 @@ and scan_dir f parent =
   Array.sort String.compare files;
   Array.iter (fun child -> scan_path f (Filename.concat parent child)) files
 
-let rec match_context pat_context context =
-  match (pat_context, context) with
-  | [], _ -> true
-  | _ :: _, [] -> false
-  | a :: a', b :: b' -> a = b && match_context a' b'
-
 let match_ matches ~pat_context ~pattern (loc : Ppxlib.Ast.location) context s =
   if
     (not loc.loc_ghost) && String.equal pattern s
-    && match_context pat_context context
+    && Match_context.match_ pat_context context
   then
     let { Ppxlib.Ast.pos_lnum; pos_cnum; _ } = loc.loc_start in
     matches := (pos_lnum, pos_cnum, context) :: !matches
@@ -39,9 +33,7 @@ let show_matches file matches =
 let run_on_file run_grepper ~pat_context ~pattern path =
   let file = Text_file.read path in
   let matches = ref [] in
-  let grepper =
-    new Grep_parsetree.grepper (match_ matches ~pat_context ~pattern)
-  in
+  let grepper = Grep_parsetree.grepper (match_ matches ~pat_context ~pattern) in
   run_grepper grepper (Text_file.lexbuf file);
   show_matches file !matches
 
