@@ -28,10 +28,10 @@ let show_matches file matches =
          if d = 0 then a' - b' else d)
   |> List.fold_left
        (fun last_printed (lnum, _, context) ->
-         if last_printed < lnum then
-           Format.printf "%s:%d:(%a)%s\n" (Text_file.path file) lnum
-             (Format.pp_print_list Grep_parsetree.pp_context)
-             context (Text_file.line file lnum);
+         (if last_printed < lnum then
+          let ctx = String.concat ", " (List.map Context.to_string context) in
+          Printf.printf "%s:%d:(%s)%s\n" (Text_file.path file) lnum ctx
+            (Text_file.line file lnum));
          lnum)
        (-1)
   |> ignore
@@ -56,21 +56,14 @@ let run pat_context pattern inputs =
 
 open Cmdliner
 
+let pat_context_docs = "PATTERN CONTEXT"
+
 let pat_context =
-  let f ctx_str doc_str =
-    let doc =
-      "Evaluate the pattern only inside a " ^ doc_str ^ ". Can be nested."
-    in
-    Arg.info ~doc [ ctx_str ]
+  let mk_ctx_flag ctx =
+    let doc = Context.short_description ctx and docs = pat_context_docs in
+    (ctx, Arg.info ~docs ~doc [ Context.to_string ctx ])
   in
-  let flags =
-    Grep_parsetree.
-      [
-        (Type, f "type" "type expr");
-        (Expr, f "expr" "expression");
-        (Pattern, f "pattern" "pattern");
-      ]
-  in
+  let flags = List.map mk_ctx_flag Context.all in
   Term.(const List.rev $ Arg.(value & vflag_all [] flags))
 
 let pos_pattern =
@@ -85,7 +78,7 @@ let pos_inputs =
 
 let cmd =
   let doc =
-    "Grep OCaml source code. Matches a $(e,pattern) against every names \
+    "Grep OCaml source code. Matches a $(b,pattern) against every names \
      present in source code."
   in
   let term = Term.(const run $ pat_context $ pos_pattern $ pos_inputs) in
