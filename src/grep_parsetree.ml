@@ -11,6 +11,9 @@ class grepper match_ =
   object
     inherit [acc] Ppxlib.Ast_traverse.fold as super
 
+    (** Avoid matching file names in locations. *)
+    method! location _ acc = acc
+
     method! loc f t ((_prev_loc, ctx) as acc) =
       ignore (super#loc f t (t.Ppxlib_ast.Ast.loc, ctx));
       acc

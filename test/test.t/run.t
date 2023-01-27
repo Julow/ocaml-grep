@@ -52,3 +52,7 @@
   $ ogrep FOO
   ./test.ml:26:module type FOO = sig
   ./test.ml:39:module X : FOO = struct end
+
+Don't match strings in locations:
+
+  $ ogrep ./test.ml
