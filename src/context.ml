@@ -17,6 +17,8 @@ type t =
   | Type_decl
   | Value  (** Value/external decl/def *)
 
+type rule = Leaf | Direct of t * rule | Indirect of t * rule
+
 let all =
   [
     Attr;
@@ -75,3 +77,16 @@ let short_description = function
   | Type -> "type expression"
   | Type_decl -> "type declaration"
   | Value -> "value declaration or description"
+
+let _pf = Format.fprintf
+
+let rec pp_rule ppf = function
+  | Leaf -> ()
+  | Direct (ctx, right) -> _pf ppf "> %s%a" (to_string ctx) pp_rule_tl right
+  | Indirect (ctx, right) -> _pf ppf "%s%a" (to_string ctx) pp_rule_tl right
+
+and pp_rule_tl ppf = function
+  | Leaf -> ()
+  | rule ->
+      _pf ppf "@ ";
+      pp_rule ppf rule

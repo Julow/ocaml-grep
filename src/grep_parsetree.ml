@@ -1,10 +1,9 @@
-type match_ = Ppxlib.Ast.location -> Context.t list -> string -> unit
-type acc = Ppxlib.Ast.location * Context.t list
+type match_ = Ppxlib.Ast.location -> string -> unit
+type acc = Ppxlib.Ast.location * Match_context.t
 
-let init = (Ppxlib.Location.none, [])
-
-let with_context f c' x ((loc, c) as acc) =
-  ignore (f x (loc, c' :: c));
+let with_context f c' x ((loc, ctx) as acc) =
+  let ctx = Match_context.enter ctx c' in
+  if not (Match_context.is_fail ctx) then ignore (f x (loc, ctx));
   acc
 
 class grepper match_ =
@@ -12,12 +11,12 @@ class grepper match_ =
   object
     inherit [acc] Ppxlib.Ast_traverse.fold as super
 
-    method! loc f t ((_prev_loc, c) as acc) =
-      ignore (super#loc f t (t.Ppxlib_ast.Ast.loc, c));
+    method! loc f t ((_prev_loc, ctx) as acc) =
+      ignore (super#loc f t (t.Ppxlib_ast.Ast.loc, ctx));
       acc
 
-    method! string s ((loc, c) as acc) =
-      match_ loc c s;
+    method! string s ((loc, ctx) as acc) =
+      if Match_context.is_done ctx then match_ loc s;
       acc
 
     method! attribute = with_context super#attribute Attr
@@ -61,12 +60,13 @@ class grepper match_ =
     method! class_description = with_context super#class_description Class
   end
 
-type t = grepper
+type t = acc * grepper
 
-let grepper match_ = new grepper match_
+let grepper context match_ =
+  ((Ppxlib.Location.none, Match_context.init context), new grepper match_)
 
-let impl grepper lexbuf =
+let impl (init, grepper) lexbuf =
   ignore (grepper#structure (Ppxlib.Parse.implementation lexbuf) init)
 
-let intf grepper lexbuf =
+let intf (init, grepper) lexbuf =
   ignore (grepper#signature (Ppxlib.Parse.interface lexbuf) init)

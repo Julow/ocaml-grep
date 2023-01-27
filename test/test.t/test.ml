@@ -16,6 +16,7 @@ let f ~foo = ()
 let f ?foo = ()
 let f ~x:foo = ()
 let x : foo = ()
+let x = (x : foo)
 
 [@@@foo]
 
