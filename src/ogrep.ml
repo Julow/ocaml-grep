@@ -58,7 +58,7 @@ let context =
   in
   let mk_rule_flag r name doc = (r, Arg.info ~docs:rules_docs ~doc [ name ]) in
   let flags =
-    [ mk_rule_flag `Direct "direct" "Match a directly nested context" ]
+    [ mk_rule_flag `Indirect "deep" "Match a arbitrarily nested context." ]
     @ List.map mk_ctx_flag Context.all
   in
   let mk_context flags =
@@ -68,8 +68,8 @@ let context =
         (fun (op, acc) flag ->
           (* Pair contextes and operators, in reverse order. *)
           match flag with
-          | `Direct as x -> (x, acc)
-          | `Ctx ctx -> (`Indirect, (op, ctx) :: acc))
+          | (`Direct | `Indirect) as x -> (x, acc)
+          | `Ctx ctx -> (`Direct, (op, ctx) :: acc))
         (`Indirect, [])
         flags
     in
