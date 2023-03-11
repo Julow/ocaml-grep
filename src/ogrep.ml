@@ -19,30 +19,45 @@ let match_ matches ~pattern (loc : Ppxlib.Ast.location) s =
     else ()
 
 let show_matches ~output_options file matches =
+  let group_matches =
+    let rec loop acc = function
+      | [] -> List.rev acc
+      | ((lnum, _, _) as hd) :: tl ->
+          let extra_matches, tl = gather_group [] lnum tl in
+          loop ((hd, extra_matches) :: acc) tl
+    and gather_group acc lnum = function
+      | ((lnum', _, _) as hd) :: tl when lnum = lnum' ->
+          gather_group (hd :: acc) lnum tl
+      | tl -> (List.rev acc, tl)
+    in
+    loop []
+  in
   let pp_column ppf cnum =
     if output_options.column then Fmt.pf ppf ":%d" cnum else ()
   in
-  let pp_line_str ppf (lnum, cnum, length) =
+  let pp_line_str ppf (((lnum, _, _) as first_match), extra_matches) =
     let str = Text_file.line file lnum in
-    let tail = cnum + length in
-    Fmt.pf ppf "%a%a%a" Fmt.string (String.sub str 0 cnum)
-      (Fmt.styled (`Bg `Yellow) Fmt.string)
-      (String.sub str cnum length)
-      Fmt.string
-      (String.sub str tail (String.length str - tail))
+    let print_match printed_col (_, cnum, len) =
+      if printed_col < cnum then
+        Fmt.string ppf (String.sub str printed_col (cnum - printed_col));
+      Fmt.styled (`Bg `Yellow) Fmt.string ppf (String.sub str cnum len);
+      cnum + len
+    in
+    let printed_col =
+      List.fold_left print_match (print_match 0 first_match) extra_matches
+    in
+    Fmt.string ppf
+      (String.sub str printed_col (String.length str - printed_col))
+  in
+  let pr_match (((lnum, cnum, _), _) as matches) =
+    Fmt.pr "%s:%d%a:%a\n" (Text_file.path file) lnum pp_column cnum pp_line_str
+      matches
   in
   matches
   |> List.sort_uniq (fun (a, a', _) (b, b', _) ->
          let d = a - b in
          if d = 0 then a' - b' else d)
-  |> List.fold_left
-       (fun last_printed ((lnum, cnum, _) as match_) ->
-         if last_printed < lnum then
-           Fmt.pr "%s:%d%a:%a\n" (Text_file.path file) lnum pp_column cnum
-             pp_line_str match_;
-         lnum)
-       (-1)
-  |> ignore
+  |> group_matches |> List.iter pr_match
 
 let run_on_file ~output_options run_grepper ~context ~pattern path =
   let file = Text_file.read path in

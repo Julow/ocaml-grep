@@ -1,2 +1,2 @@
 let foo = x
-let bar = x
+let bar = bar
