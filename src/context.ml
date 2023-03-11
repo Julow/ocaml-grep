@@ -40,44 +40,69 @@ let all =
     Value;
   ]
 
-let to_string = function
-  | Attr -> "attr"
-  | Class -> "class"
-  | Class_type -> "class-type"
-  | Expr -> "expr"
-  | Ext -> "ext"
-  | Include -> "include"
-  | Module -> "module"
-  | Module_expr -> "module-expr"
-  | Module_type -> "module-type"
-  | Module_type_expr -> "module-type-expr"
-  | Open -> "open"
-  | Pattern -> "pattern"
-  | Sig -> "sig"
-  | Str -> "str"
-  | Type -> "type"
-  | Type_decl -> "type-decl"
-  | Value -> "value"
+type info = { parent : t; str : string; short_description : string }
 
-let short_description = function
-  | Attr -> "attribute"
-  | Class -> "class declaration"
-  | Class_type -> "class type declaration"
-  | Expr -> "expression"
-  | Ext -> "extension"
-  | Include -> "include"
-  | Module -> "module declaration"
-  | Module_expr -> "module expression"
-  | Module_type -> "module type declaration"
-  | Module_type_expr -> "module type expression"
-  | Open -> "open"
-  | Pattern -> "pattern"
-  | Sig -> "sig"
-  | Str -> "str"
-  | Type -> "type expression"
-  | Type_decl -> "type declaration"
-  | Value -> "value declaration or description"
+let info = function
+  | Attr -> { str = "attr"; parent = Attr; short_description = "attribute" }
+  | Class ->
+      { str = "class"; parent = Class; short_description = "class declaration" }
+  | Class_type ->
+      {
+        str = "class-type";
+        parent = Class;
+        short_description = "class type declaration";
+      }
+  | Expr -> { str = "expr"; parent = Expr; short_description = "expression" }
+  | Ext -> { str = "ext"; parent = Ext; short_description = "extension" }
+  | Include ->
+      { str = "include"; parent = Module; short_description = "include" }
+  | Module ->
+      {
+        str = "module";
+        parent = Module;
+        short_description = "module declaration";
+      }
+  | Module_expr ->
+      {
+        str = "module-expr";
+        parent = Module;
+        short_description = "module expression";
+      }
+  | Module_type ->
+      {
+        str = "module-type";
+        parent = Module;
+        short_description = "module type declaration";
+      }
+  | Module_type_expr ->
+      {
+        str = "module-type-expr";
+        parent = Module;
+        short_description = "module type expression";
+      }
+  | Open -> { str = "open"; parent = Module; short_description = "open" }
+  | Pattern ->
+      { str = "pattern"; parent = Pattern; short_description = "pattern" }
+  | Sig -> { str = "sig"; parent = Sig; short_description = "sig" }
+  | Str -> { str = "str"; parent = Str; short_description = "str" }
+  | Type ->
+      { str = "type"; parent = Type; short_description = "type expression" }
+  | Type_decl ->
+      {
+        str = "type-decl";
+        parent = Type;
+        short_description = "type declaration";
+      }
+  | Value ->
+      {
+        str = "value";
+        parent = Value;
+        short_description = "value declaration or description";
+      }
 
+let to_string t = (info t).str
+let short_description t = (info t).short_description
+let parent t = (info t).parent
 let _pf = Format.fprintf
 
 let rec pp_rule ppf = function

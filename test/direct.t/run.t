@@ -25,9 +25,7 @@ The contextes are shaped like this:
   $ ogrep -vv --val --direct --expr foo
   ogrep: [DEBUG] Context rules: [ value > expr ]
   ogrep: [DEBUG] String in context: 1:16: "x"
-  ogrep: [DEBUG] String in context: 1:10: "bar"
   ogrep: [DEBUG] String in context: 2:14: "foo"
-  ogrep: [DEBUG] String in context: 2:8: "bar"
   ./test.ml:2:let x : bar = foo
 
   $ ogrep -vv --val --direct --expr --direct --expr foo

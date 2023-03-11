@@ -43,11 +43,6 @@
   ./test.ml:8:let _ = foo
   ./test.ml:9:let _ = f foo
   ./test.ml:10:let _ = foo ()
-  ./test.ml:15:let f ~foo = ()
-  ./test.ml:16:let f ?foo = ()
-  ./test.ml:17:let f ~x:foo = ()
-  ./test.ml:18:let x : foo = ()
-  ./test.ml:19:let x = (x : foo)
 
   $ ogrep FOO
   ./test.ml:26:module type FOO = sig

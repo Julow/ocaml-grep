@@ -1,33 +1,24 @@
-type t = Context.t list * Context.rule list
-(** Entered contextes, possible rules. *)
+type t = (Context.t option * Context.rule) list
+(** Possible rules and parent context that might disable it. *)
 
-let init rule = ([], [ rule ])
-let is_fail (_, t) = t = []
-let is_done (_, t) = List.mem Context.Leaf t
+let init rule = [ (None, rule) ]
+let is_fail t = t = []
+let is_done t = List.exists (fun (_, rule) -> rule = Context.Leaf) t
 
-let enter (acc_ctx, t) ctx =
-  ( ctx :: acc_ctx,
-    List.fold_left
-      (fun acc rule ->
-        match rule with
-        | Context.Leaf -> [ Context.Leaf ]
-        | Direct (ctx', rule') as rule ->
-            if ctx = ctx' then rule' :: rule :: acc else rule :: acc
-        | Indirect (ctx', rule') as rule ->
-            if ctx = ctx' then rule' :: acc else rule :: acc)
-      [] t )
-
-let _pf = Format.fprintf
-
-let pp_context ppf (ctx, _) =
-  let pp_sep ppf () = _pf ppf ",@ " in
-  let pp_ctx ppf ctx = _pf ppf "%s" (Context.to_string ctx) in
-  _pf ppf "@[<hov>%a@]" (Format.pp_print_list ~pp_sep pp_ctx) ctx
-
-let pp_internal ppf (_, t) =
-  let pp_sep ppf () = _pf ppf ",@ " in
-  let pp_rule ppf = function
-    | Context.Leaf -> _pf ppf "<leaf>"
-    | rule -> _pf ppf "@[<2>%a@]" Context.pp_rule rule
+let enter t ctx =
+  let parent = Context.parent ctx in
+  let prune_parent acc ((parent', _) as rule) =
+    match parent' with
+    | Some parent' when parent <> parent' -> acc
+    | _ -> rule :: acc
   in
-  _pf ppf "@[<hov>%a@]" (Format.pp_print_list ~pp_sep pp_rule) t
+  let advance_rule acc = function
+    | (_, Context.Leaf) as rule -> prune_parent acc rule
+    | (_, Direct (ctx', rule')) as rule ->
+        if ctx = ctx' then (Some parent, rule') :: acc
+        else prune_parent acc rule
+    | (_, Indirect (ctx', rule')) as rule ->
+        if ctx = ctx' then (Some parent, rule') :: rule :: acc
+        else prune_parent acc rule
+  in
+  List.fold_left advance_rule [] t
