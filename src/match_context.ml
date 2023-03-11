@@ -18,7 +18,12 @@ let enter t ctx =
 
 let _pf = Format.fprintf
 
-let pp_internal ppf t =
+let pp_context ppf (ctx, _) =
+  let pp_sep ppf () = _pf ppf ",@ " in
+  let pp_ctx ppf ctx = _pf ppf "%s" (Context.to_string ctx) in
+  _pf ppf "@[<hov>%a@]" (Format.pp_print_list ~pp_sep pp_ctx) ctx
+
+let pp_internal ppf (_, t) =
   let pp_sep ppf () = _pf ppf ",@ " in
   let pp_rule ppf = function
     | Context.Leaf -> _pf ppf "<leaf>"

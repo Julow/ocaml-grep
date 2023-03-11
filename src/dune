@@ -1,4 +1,12 @@
 (executable
  (name ogrep)
  (public_name ogrep)
- (libraries cmdliner ppxlib ppxlib.ast))
+ (libraries
+  cmdliner
+  fmt.cli
+  fmt.tty
+  logs
+  logs.cli
+  logs.fmt
+  ppxlib
+  ppxlib.ast))

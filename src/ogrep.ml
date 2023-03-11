@@ -7,10 +7,12 @@ and scan_dir f parent =
   Array.iter (fun child -> scan_path f (Filename.concat parent child)) files
 
 let match_ matches ~pattern (loc : Ppxlib.Ast.location) s =
-  if (not loc.loc_ghost) && String.equal pattern s then
+  if loc.loc_ghost then ()
+  else
     let { Ppxlib.Ast.pos_lnum; pos_cnum; _ } = loc.loc_start in
-    matches := (pos_lnum, pos_cnum) :: !matches
-  else ()
+    Logs.debug (fun l -> l "String in context: %d:%d: %S" pos_lnum pos_cnum s);
+    if String.equal pattern s then matches := (pos_lnum, pos_cnum) :: !matches
+    else ()
 
 let show_matches file matches =
   matches
@@ -33,7 +35,8 @@ let run_on_file run_grepper ~context ~pattern path =
   run_grepper grepper (Text_file.lexbuf file);
   show_matches file !matches
 
-let run context pattern inputs =
+let run () context pattern inputs =
+  Logs.debug (fun l -> l "Context rules: [ %a ]" Context.pp_rule context);
   List.iter
     (scan_path (fun path ->
          match Filename.extension path with
@@ -68,12 +71,20 @@ let pos_inputs =
   in
   Arg.(value & pos_right 1 string [ "." ] & info [] ~docv:"INPUTS" ~doc)
 
+let logs =
+  let setup_logs style_renderer level =
+    Fmt_tty.setup_std_outputs ?style_renderer ();
+    Logs.set_level level;
+    Logs.set_reporter (Logs_fmt.reporter ())
+  in
+  Term.(const setup_logs $ Fmt_cli.style_renderer () $ Logs_cli.level ())
+
 let cmd =
   let doc =
     "Grep OCaml source code. Matches a $(b,pattern) against every names \
      present in source code."
   in
-  let term = Term.(const run $ context $ pos_pattern $ pos_inputs) in
+  let term = Term.(const run $ logs $ context $ pos_pattern $ pos_inputs) in
   Cmd.(v (info "ogrep" ~doc) term)
 
 let () = exit (Cmd.eval cmd)
