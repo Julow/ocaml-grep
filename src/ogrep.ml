@@ -47,17 +47,38 @@ let run () context pattern inputs =
 
 open Cmdliner
 
-let pat_context_docs = "PATTERN CONTEXT"
+let context_docs = "CONTEXT MATCHING"
+let rules_docs = "CONTEXT COMBINATORS"
 
+(** Context rule arguments. *)
 let context =
   let mk_ctx_flag ctx =
-    let doc = Context.short_description ctx and docs = pat_context_docs in
-    (ctx, Arg.info ~docs ~doc [ Context.to_string ctx ])
+    let doc = Context.short_description ctx and docs = context_docs in
+    (`Ctx ctx, Arg.info ~docs ~doc [ Context.to_string ctx ])
   in
-  let flags = List.map mk_ctx_flag Context.all in
+  let mk_rule_flag r name doc = (r, Arg.info ~docs:rules_docs ~doc [ name ]) in
+  let flags =
+    [ mk_rule_flag `Direct "direct" "Match a directly nested context" ]
+    @ List.map mk_ctx_flag Context.all
+  in
   let mk_context flags =
     let open Context in
-    List.fold_left (fun acc c' -> Indirect (c', acc)) Leaf flags
+    let _, components =
+      List.fold_left
+        (fun (op, acc) flag ->
+          (* Pair contextes and operators, in reverse order. *)
+          match flag with
+          | `Direct as x -> (x, acc)
+          | `Ctx ctx -> (`Indirect, (op, ctx) :: acc))
+        (`Indirect, [])
+        flags
+    in
+    List.fold_left
+      (fun acc (op, ctx) ->
+        match op with
+        | `Direct -> Direct (ctx, acc)
+        | `Indirect -> Indirect (ctx, acc))
+      Leaf components
   in
   Term.(const mk_context $ Arg.(value & vflag_all [] flags))
 
