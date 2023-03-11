@@ -48,8 +48,9 @@ let run_on_file ~output_options run_grepper ~context ~pattern path =
   let file = Text_file.read path in
   let matches = ref [] in
   let grepper = Grep_parsetree.grepper context (match_ matches ~pattern) in
-  run_grepper grepper (Text_file.lexbuf file);
-  show_matches ~output_options file !matches
+  match run_grepper grepper (Text_file.lexbuf file) with
+  | exception _ -> Fmt.epr "%s: Syntax error@\n" path
+  | () -> show_matches ~output_options file !matches
 
 let run () output_options context pattern inputs =
   Logs.debug (fun l -> l "Context rules: [ %a ]" Context.pp_rule context);
