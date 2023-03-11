@@ -1,20 +1,21 @@
-type t = Context.rule list
-(** List of possible rules *)
+type t = Context.t list * Context.rule list
+(** Entered contextes, possible rules. *)
 
-let init rule = [ rule ]
-let is_fail t = t = []
-let is_done t = List.mem Context.Leaf t
+let init rule = ([], [ rule ])
+let is_fail (_, t) = t = []
+let is_done (_, t) = List.mem Context.Leaf t
 
-let enter t ctx =
-  List.fold_left
-    (fun acc rule ->
-      match rule with
-      | Context.Leaf -> [ Context.Leaf ]
-      | Direct (ctx', rule') as rule ->
-          if ctx = ctx' then rule' :: rule :: acc else rule :: acc
-      | Indirect (ctx', rule') as rule ->
-          if ctx = ctx' then rule' :: acc else rule :: acc)
-    [] t
+let enter (acc_ctx, t) ctx =
+  ( ctx :: acc_ctx,
+    List.fold_left
+      (fun acc rule ->
+        match rule with
+        | Context.Leaf -> [ Context.Leaf ]
+        | Direct (ctx', rule') as rule ->
+            if ctx = ctx' then rule' :: rule :: acc else rule :: acc
+        | Indirect (ctx', rule') as rule ->
+            if ctx = ctx' then rule' :: acc else rule :: acc)
+      [] t )
 
 let _pf = Format.fprintf
 
