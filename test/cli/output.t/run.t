@@ -17,3 +17,9 @@ Several matches on the same line:
 
   $ ogrep --color=always bar | tr $'\033' '\\'
   ./foo.ml:2:let \[43mbar\[0m = \[43mbar\[0m
+
+Separate matches:
+
+  $ ogrep --separate bar
+  ./foo.ml:2:4:let bar = bar
+  ./foo.ml:2:10:let bar = bar

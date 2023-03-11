@@ -1,4 +1,4 @@
-type output_options = { column : bool }
+type output_options = { column : bool; separate_matches : bool }
 
 let rec scan_path f path =
   if Sys.is_directory path then scan_dir f path else f path
@@ -32,6 +32,10 @@ let show_matches ~output_options file matches =
     in
     loop []
   in
+  let separate_matches = List.map (fun m -> (m, [])) in
+  let maybe_group_matches =
+    if output_options.separate_matches then separate_matches else group_matches
+  in
   let pp_column ppf cnum =
     if output_options.column then Fmt.pf ppf ":%d" cnum else ()
   in
@@ -57,7 +61,7 @@ let show_matches ~output_options file matches =
   |> List.sort_uniq (fun (a, a', _) (b, b', _) ->
          let d = a - b in
          if d = 0 then a' - b' else d)
-  |> group_matches |> List.iter pr_match
+  |> maybe_group_matches |> List.iter pr_match
 
 let run_on_file ~output_options run_grepper ~context ~pattern path =
   let file = Text_file.read path in
@@ -122,9 +126,17 @@ let output_options =
   let column =
     let doc = "Output the column number, counted in bytes starting from 1." in
     Arg.(value & flag & info [ "c"; "column" ] ~doc)
+  and separate_matches =
+    let doc =
+      "Output matches in the same line separately. This implies $(b,--column)."
+    in
+    Arg.(value & flag & info [ "S"; "separate" ] ~doc)
   in
-  let mk column = { column } in
-  Term.(const mk $ column)
+  let mk column separate_matches =
+    let column = column || separate_matches in
+    { column; separate_matches }
+  in
+  Term.(const mk $ column $ separate_matches)
 
 let pos_pattern =
   let doc = "A regular expression accepted by OCaml's Str library." in
