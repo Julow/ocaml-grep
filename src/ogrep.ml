@@ -11,24 +11,35 @@ and scan_dir f parent =
 let match_ matches ~pattern (loc : Ppxlib.Ast.location) s =
   if loc.loc_ghost then ()
   else
-    let { Ppxlib.Ast.pos_lnum; pos_cnum; _ } = loc.loc_start in
-    Logs.debug (fun l -> l "String in context: %d:%d: %S" pos_lnum pos_cnum s);
-    if String.equal pattern s then matches := (pos_lnum, pos_cnum) :: !matches
+    let { Ppxlib.Ast.pos_lnum; pos_cnum; pos_bol; _ } = loc.loc_start in
+    let cnum = pos_cnum - pos_bol in
+    Logs.debug (fun l -> l "String in context: %d:%d: %S" pos_lnum cnum s);
+    if String.equal pattern s then
+      matches := (pos_lnum, cnum, String.length s) :: !matches
     else ()
 
 let show_matches ~output_options file matches =
   let pp_column ppf cnum =
-    if output_options.column then Printf.fprintf ppf ":%d" cnum else ()
+    if output_options.column then Fmt.pf ppf ":%d" cnum else ()
+  in
+  let pp_line_str ppf (lnum, cnum, length) =
+    let str = Text_file.line file lnum in
+    let tail = cnum + length in
+    Fmt.pf ppf "%a%a%a" Fmt.string (String.sub str 0 cnum)
+      (Fmt.styled (`Bg `Yellow) Fmt.string)
+      (String.sub str cnum length)
+      Fmt.string
+      (String.sub str tail (String.length str - tail))
   in
   matches
-  |> List.sort_uniq (fun (a, a') (b, b') ->
+  |> List.sort_uniq (fun (a, a', _) (b, b', _) ->
          let d = a - b in
          if d = 0 then a' - b' else d)
   |> List.fold_left
-       (fun last_printed (lnum, cnum) ->
+       (fun last_printed ((lnum, cnum, _) as match_) ->
          if last_printed < lnum then
-           Printf.printf "%s:%d%a:%s\n" (Text_file.path file) lnum pp_column
-             cnum (Text_file.line file lnum);
+           Fmt.pr "%s:%d%a:%a\n" (Text_file.path file) lnum pp_column cnum
+             pp_line_str match_;
          lnum)
        (-1)
   |> ignore
