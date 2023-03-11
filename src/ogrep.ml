@@ -1,3 +1,5 @@
+type output_options = { column : bool }
+
 let rec scan_path f path =
   if Sys.is_directory path then scan_dir f path else f path
 
@@ -14,34 +16,41 @@ let match_ matches ~pattern (loc : Ppxlib.Ast.location) s =
     if String.equal pattern s then matches := (pos_lnum, pos_cnum) :: !matches
     else ()
 
-let show_matches file matches =
+let show_matches ~output_options file matches =
+  let pp_column ppf cnum =
+    if output_options.column then Printf.fprintf ppf ":%d" cnum else ()
+  in
   matches
   |> List.sort_uniq (fun (a, a') (b, b') ->
          let d = a - b in
          if d = 0 then a' - b' else d)
   |> List.fold_left
-       (fun last_printed (lnum, _) ->
+       (fun last_printed (lnum, cnum) ->
          if last_printed < lnum then
-           Printf.printf "%s:%d:%s\n" (Text_file.path file) lnum
-             (Text_file.line file lnum);
+           Printf.printf "%s:%d%a:%s\n" (Text_file.path file) lnum pp_column
+             cnum (Text_file.line file lnum);
          lnum)
        (-1)
   |> ignore
 
-let run_on_file run_grepper ~context ~pattern path =
+let run_on_file ~output_options run_grepper ~context ~pattern path =
   let file = Text_file.read path in
   let matches = ref [] in
   let grepper = Grep_parsetree.grepper context (match_ matches ~pattern) in
   run_grepper grepper (Text_file.lexbuf file);
-  show_matches file !matches
+  show_matches ~output_options file !matches
 
-let run () context pattern inputs =
+let run () output_options context pattern inputs =
   Logs.debug (fun l -> l "Context rules: [ %a ]" Context.pp_rule context);
   List.iter
     (scan_path (fun path ->
          match Filename.extension path with
-         | ".ml" -> run_on_file Grep_parsetree.impl ~pattern ~context path
-         | ".mli" -> run_on_file Grep_parsetree.intf ~pattern ~context path
+         | ".ml" ->
+             run_on_file ~output_options Grep_parsetree.impl ~pattern ~context
+               path
+         | ".mli" ->
+             run_on_file ~output_options Grep_parsetree.intf ~pattern ~context
+               path
          | _ -> ()))
     inputs
 
@@ -82,6 +91,14 @@ let context =
   in
   Term.(const mk_context $ Arg.(value & vflag_all [] flags))
 
+let output_options =
+  let column =
+    let doc = "Output the column number, counted in bytes starting from 1." in
+    Arg.(value & flag & info [ "c"; "column" ] ~doc)
+  in
+  let mk column = { column } in
+  Term.(const mk $ column)
+
 let pos_pattern =
   let doc = "A regular expression accepted by OCaml's Str library." in
   Arg.(required & pos 0 (some string) None & info [] ~docv:"PATTERN" ~doc)
@@ -105,7 +122,10 @@ let cmd =
     "Grep OCaml source code. Matches a $(b,pattern) against every names \
      present in source code."
   in
-  let term = Term.(const run $ logs $ context $ pos_pattern $ pos_inputs) in
+  let term =
+    Term.(
+      const run $ logs $ output_options $ context $ pos_pattern $ pos_inputs)
+  in
   Cmd.(v (info "ogrep" ~doc) term)
 
 let () = exit (Cmd.eval cmd)

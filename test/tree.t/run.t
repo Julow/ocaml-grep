@@ -1,7 +1,9 @@
 Test scanning of directories.
 
   $ mkdir -p {a,b,c}/{1,2,3}
-  $ for f in {a,b,c}/{1,2,3}/foo.ml {a,b,c,.}/{foo,bar,baz}.ml; do echo let foo = 1 > $f; done 
+  $ for f in {a,b,c}/{1,2,3}/foo.ml {a,b,c,.}/{foo,bar,baz}.ml; do echo "let foo = 1" > $f; done
+
+Expecting 21 matches:
 
   $ ogrep foo
   ./a/1/foo.ml:1:let foo = 1
