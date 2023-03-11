@@ -42,7 +42,6 @@
   $ ogrep --expr foo
   ./test.ml:8:let _ = foo
   ./test.ml:9:let _ = f foo
-  ./test.ml:10:let _ = foo ()
 
   $ ogrep FOO
   ./test.ml:26:module type FOO = sig

@@ -93,7 +93,7 @@ let rules_docs = "CONTEXT COMBINATORS"
 (** Context rule arguments. *)
 let context =
   let mk_ctx_flag ctx =
-    let doc = Context.short_description ctx and docs = context_docs in
+    let doc = Context.description ctx and docs = context_docs in
     (`Ctx ctx, Arg.info ~docs ~doc [ Context.to_string ctx ])
   in
   let mk_rule_flag r name doc = (r, Arg.info ~docs:rules_docs ~doc [ name ]) in

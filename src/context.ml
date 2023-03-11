@@ -1,13 +1,17 @@
 type t =
   | Attr
-  | Class
-  | Class_type
+  | Class  (** Parent *)
+  | Class_decl
+  | Class_type_decl
   | Expr
+  | Expr_applied
+  | Record_field
   | Ext
   | Include
-  | Module  (** Module decl/def *)
+  | Module  (** Parent *)
+  | Module_decl
   | Module_expr
-  | Module_type  (** Module type decl/def *)
+  | Module_type_decl
   | Module_type_expr
   | Open
   | Pattern
@@ -23,13 +27,17 @@ let all =
   [
     Attr;
     Class;
-    Class_type;
+    Class_decl;
+    Class_type_decl;
     Expr;
+    Expr_applied;
+    Record_field;
     Ext;
     Include;
     Module;
+    Module_decl;
     Module_expr;
-    Module_type;
+    Module_type_decl;
     Module_type_expr;
     Open;
     Pattern;
@@ -40,68 +48,35 @@ let all =
     Value;
   ]
 
-type info = { parent : t; str : string; short_description : string }
+type info = { parent : t; str : string; desc : string }
+
+let[@inline always] _mk ~parent str desc = { parent; str; desc }
 
 let info = function
-  | Attr -> { str = "attr"; parent = Attr; short_description = "attribute" }
-  | Class ->
-      { str = "class"; parent = Class; short_description = "class declaration" }
-  | Class_type ->
-      {
-        str = "class-type";
-        parent = Class;
-        short_description = "class type declaration";
-      }
-  | Expr -> { str = "expr"; parent = Expr; short_description = "expression" }
-  | Ext -> { str = "ext"; parent = Ext; short_description = "extension" }
-  | Include ->
-      { str = "include"; parent = Module; short_description = "include" }
-  | Module ->
-      {
-        str = "module";
-        parent = Module;
-        short_description = "module declaration";
-      }
-  | Module_expr ->
-      {
-        str = "module-expr";
-        parent = Module;
-        short_description = "module expression";
-      }
-  | Module_type ->
-      {
-        str = "module-type";
-        parent = Module;
-        short_description = "module type declaration";
-      }
-  | Module_type_expr ->
-      {
-        str = "module-type-expr";
-        parent = Module;
-        short_description = "module type expression";
-      }
-  | Open -> { str = "open"; parent = Module; short_description = "open" }
-  | Pattern ->
-      { str = "pattern"; parent = Pattern; short_description = "pattern" }
-  | Sig -> { str = "sig"; parent = Sig; short_description = "sig" }
-  | Str -> { str = "str"; parent = Str; short_description = "str" }
-  | Type ->
-      { str = "type"; parent = Type; short_description = "type expression" }
-  | Type_decl ->
-      {
-        str = "type-decl";
-        parent = Type;
-        short_description = "type declaration";
-      }
-  | Value ->
-      {
-        str = "value";
-        parent = Value;
-        short_description = "value declaration or description";
-      }
+  | Attr -> _mk ~parent:Attr "attr" "attribute"
+  | Class -> _mk ~parent:Class "class" "class"
+  | Class_decl -> _mk ~parent:Class "class-decl" "class declaration"
+  | Class_type_decl -> _mk ~parent:Class "class-type-decl" "class type declaration"
+  | Expr -> _mk ~parent:Expr "expr" "expression"
+  | Expr_applied -> _mk ~parent:Expr "applied" "applied expression"
+  | Record_field -> _mk ~parent:Record_field "field" "record field"
+  | Ext -> _mk ~parent:Ext "ext" "extension"
+  | Include -> _mk ~parent:Module "include" "include"
+  | Module -> _mk ~parent:Module "module" "module"
+  | Module_decl -> _mk ~parent:Module "module-decl" "module declaration"
+  | Module_expr -> _mk ~parent:Module "module-expr" "module expression"
+  | Module_type_decl -> _mk ~parent:Module "module-type-decl" "module type declaration"
+  | Module_type_expr -> _mk ~parent:Module "module-type-expr" "module type expression"
+  | Open -> _mk ~parent:Module "open" "open"
+  | Pattern -> _mk ~parent:Pattern "pattern" "pattern"
+  | Sig -> _mk ~parent:Sig "sig" "sig"
+  | Str -> _mk ~parent:Str "str" "str"
+  | Type -> _mk ~parent:Type "type" "type expression"
+  | Type_decl -> _mk ~parent:Type "type-decl" "type declaration"
+  | Value -> _mk ~parent:Value "value" "value declaration or description"
 
 let to_string t = (info t).str
-let short_description t = (info t).short_description
+let description t = (info t).desc
 let parent t = (info t).parent
 let _pf = Format.fprintf
 
