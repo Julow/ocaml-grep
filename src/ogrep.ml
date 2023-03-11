@@ -13,7 +13,7 @@ let match_ matches ~pattern (loc : Ppxlib.Ast.location) s =
   else
     let { Ppxlib.Ast.pos_lnum; pos_cnum; pos_bol; _ } = loc.loc_start in
     let cnum = pos_cnum - pos_bol in
-    Logs.debug (fun l -> l "String in context: %d:%d: %S" pos_lnum cnum s);
+    Logs.debug (fun l -> l "%t  %S  (%d:%d)" Debug.pp_level s pos_lnum cnum);
     if String.equal pattern s then
       matches := (pos_lnum, cnum, String.length s) :: !matches
     else ()

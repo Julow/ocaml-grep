@@ -2,8 +2,10 @@ type match_ = Ppxlib.Ast.location -> string -> unit
 type acc = Ppxlib.Ast.location * Match_context.t
 
 let with_context f c' x ((loc, ctx) as acc) =
+  incr Debug.level;
   let ctx = Match_context.enter ctx c' in
   if not (Match_context.is_fail ctx) then ignore (f x (loc, ctx));
+  decr Debug.level;
   acc
 
 class grepper match_ =

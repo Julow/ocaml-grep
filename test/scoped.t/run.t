@@ -9,10 +9,7 @@ A context stops matching when entering a context with a different "parent".
 
 2 expressions:
 
-  $ ogrep -vv -S --expr foo
-  ogrep: [DEBUG] Context rules: [ expr ]
-  ogrep: [DEBUG] String in context: 1:45: "foo"
-  ogrep: [DEBUG] String in context: 1:50: "foo"
+  $ ogrep -S --expr foo
   ./test.ml:1:45:let foo : foo = fun { foo = (foo : foo) } -> foo (foo : foo)
   ./test.ml:1:50:let foo : foo = fun { foo = (foo : foo) } -> foo (foo : foo)
 
