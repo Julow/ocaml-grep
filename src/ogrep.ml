@@ -41,17 +41,25 @@ let show_matches ~output_options file matches =
   in
   let pp_line_str ppf (((lnum, _, _) as first_match), extra_matches) =
     let str = Text_file.line file lnum in
+    (* Locations in the AST might be wrong and lead to overflow. *)
+    let safe_sub start len =
+      let overflow = max 0 (start + len - String.length str) in
+      if len <= overflow then
+        ""
+      else
+        String.sub str start (len - overflow)
+    in
     let print_match printed_col (_, cnum, len) =
       if printed_col < cnum then
-        Fmt.string ppf (String.sub str printed_col (cnum - printed_col));
-      Fmt.styled (`Bg `Yellow) Fmt.string ppf (String.sub str cnum len);
+        Fmt.string ppf (safe_sub printed_col (cnum - printed_col));
+      Fmt.styled (`Bg `Yellow) Fmt.string ppf (safe_sub cnum len);
       cnum + len
     in
     let printed_col =
       List.fold_left print_match (print_match 0 first_match) extra_matches
     in
     Fmt.string ppf
-      (String.sub str printed_col (String.length str - printed_col))
+      (safe_sub printed_col (String.length str - printed_col))
   in
   let pr_match (((lnum, cnum, _), _) as matches) =
     Fmt.pr "%s:%d%a:%a\n" (Text_file.path file) lnum pp_column cnum pp_line_str
