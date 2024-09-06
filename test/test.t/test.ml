@@ -10,6 +10,9 @@ let _ = f foo
 let _ = foo ()
 let { foo; _ } = ()
 let { contents = foo } = ()
+let f x = { foo = x }
+let f x = x.foo
+let f x = x.foo <- 1
 let (Foo _) = ()
 let (_ as foo) = ()
 let f ~foo = ()

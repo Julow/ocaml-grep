@@ -37,7 +37,8 @@ class grepper match_ =
     (** Expressions *)
 
     method any_expression = with_context super#expression Expr
-    method record_field = with_context self#longident_loc Record_field
+    method record_field_set = with_context self#longident_loc Record_field_set
+    method record_field_get = with_context self#longident_loc Record_field_get
 
     method letmodule_decl' (name, me) acc =
       let acc = self#loc (self#option self#string) name acc in
@@ -58,17 +59,17 @@ class grepper match_ =
           let acc =
             self#list
               (fun (a, b) acc ->
-                let acc = self#record_field a acc in
+                let acc = self#record_field_set a acc in
                 self#expression b acc)
               fields acc
           in
           self#option self#expression src acc
       | Pexp_field (src, field) ->
           let acc = self#expression src acc in
-          self#record_field field acc
+          self#record_field_get field acc
       | Pexp_setfield (src, field, val_) ->
           let acc = self#expression src acc in
-          let acc = self#record_field field acc in
+          let acc = self#record_field_set field acc in
           self#expression val_ acc
       | Pexp_letmodule (name, me, expr) ->
           let acc = self#letmodule_decl (name, me) acc in

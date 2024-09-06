@@ -5,7 +5,9 @@ type t =
   | Class_type_decl
   | Expr
   | Expr_applied
-  | Record_field
+  | Record_field (** Parent *)
+  | Record_field_set
+  | Record_field_get
   | Ext
   | Include
   | Module  (** Parent *)
@@ -32,6 +34,8 @@ let all =
     Expr;
     Expr_applied;
     Record_field;
+    Record_field_set;
+    Record_field_get;
     Ext;
     Include;
     Module;
@@ -60,6 +64,8 @@ let info = function
   | Expr -> _mk ~parent:Expr "expr" "expression"
   | Expr_applied -> _mk ~parent:Expr "applied" "applied expression"
   | Record_field -> _mk ~parent:Record_field "field" "record field"
+  | Record_field_set -> _mk ~parent:Record_field "field-set" "record field write"
+  | Record_field_get -> _mk ~parent:Record_field "field-get" "record field access"
   | Ext -> _mk ~parent:Ext "ext" "extension"
   | Include -> _mk ~parent:Module "include" "include"
   | Module -> _mk ~parent:Module "module" "module"
