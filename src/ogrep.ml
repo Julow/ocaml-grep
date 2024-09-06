@@ -1,12 +1,17 @@
 type output_options = { column : bool; separate_matches : bool }
 
 let rec scan_path f path =
-  if Sys.is_directory path then scan_dir f path else f path
+  match Sys.is_directory path with
+  | exception Sys_error msg -> Logs.err (fun l -> l "%s" msg)
+  | true -> scan_dir f path
+  | false -> f path
 
 and scan_dir f parent =
-  let files = Sys.readdir parent in
-  Array.sort String.compare files;
-  Array.iter (fun child -> scan_path f (Filename.concat parent child)) files
+  match Sys.readdir parent with
+  | exception Sys_error msg -> Logs.err (fun l -> l "%s" msg)
+  | files ->
+    Array.sort String.compare files;
+    Array.iter (fun child -> scan_path f (Filename.concat parent child)) files
 
 let match_ matches ~pattern (loc : Ppxlib.Ast.location) s =
   if loc.loc_ghost then ()
