@@ -46,17 +46,21 @@ let show_matches ~output_options file matches =
   in
   let pp_line_str ppf (((lnum, _, _) as first_match), extra_matches) =
     let str = Text_file.line file lnum in
+    let str_len = String.length str in
     let print_match printed_col (_, cnum, len) =
+      (* Be safe against wrong locations. *)
+      let cnum = min str_len cnum in
       if printed_col < cnum then
         Fmt.string ppf (String.sub str printed_col (cnum - printed_col));
-      Fmt.styled (`Bg `Yellow) Fmt.string ppf (String.sub str cnum len);
-      cnum + len
+      let right = min str_len (cnum + len) in
+      Fmt.styled (`Bg `Yellow) Fmt.string ppf (String.sub str cnum (right - cnum));
+      right
     in
     let printed_col =
       List.fold_left print_match (print_match 0 first_match) extra_matches
     in
     Fmt.string ppf
-      (String.sub str printed_col (String.length str - printed_col))
+      (String.sub str printed_col (str_len - printed_col))
   in
   let pr_match (((lnum, cnum, _), _) as matches) =
     Fmt.pr "%s:%d%a:%a\n" (Text_file.path file) lnum pp_column cnum pp_line_str
