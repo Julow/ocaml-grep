@@ -155,7 +155,7 @@ let pos_inputs =
   let doc =
     "Files or directories to search. Directories are searched recursively."
   in
-  Arg.(value & pos_right 1 string [ "." ] & info [] ~docv:"INPUTS" ~doc)
+  Arg.(value & pos_right 0 string [ "." ] & info [] ~docv:"INPUTS" ~doc)
 
 let logs =
   let setup_logs style_renderer level =
