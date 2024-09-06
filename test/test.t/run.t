@@ -36,12 +36,15 @@
   ./test.ml:49:open Foo
 
   $ ogrep --type Foo
+  ./test.ml:2:type t = Foo
   ./test.ml:4:type t = [ `Foo ]
+  ./test.ml:28:  type t = Foo
   ./test.ml:30:  type t = [ `Foo ]
 
   $ ogrep --expr foo
   ./test.ml:8:let _ = foo
   ./test.ml:9:let _ = f foo
+  ./test.ml:10:let _ = foo ()
 
   $ ogrep FOO
   ./test.ml:26:module type FOO = sig

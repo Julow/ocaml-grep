@@ -18,8 +18,7 @@ let debug_pp ppf t =
   in
   _pf ppf "@[<hov>%a@]" (Format.pp_print_list ~pp_sep pp_rule) t
 
-let enter t ctx =
-  let parent = Context.parent ctx in
+let enter_one t ~parent ctx =
   let prune_parent acc ((parent', _) as rule) =
     match parent' with
     | Some parent' when parent <> parent' -> acc
@@ -38,3 +37,8 @@ let enter t ctx =
   Logs.debug (fun l ->
       l "%t%s  (%a)" Debug.pp_level (Context.to_string ctx) debug_pp t);
   t
+
+let rec enter t ctx =
+  let parent = Context.parent ctx in
+  let t = if parent <> ctx then enter t parent else t in
+  enter_one t ~parent ctx
